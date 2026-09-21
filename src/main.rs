@@ -10,12 +10,14 @@ pub mod john;
 async fn main() {
     // Step 1: Construct (which also starts up all backends for) All Actors
     let john_handle = JohnHandle::new().await;
+    let booster_handle = BoosterHandle::new().await;
     let brightspace_handle = BrightspaceHandle::new().await;
     // let booster_handle = BoosterHandle::new().await;
     let admin_handle = AdminHandle::new().await;
 
     // Step 2: Orchestrate Actors
-    john_handle.set_brightspace(brightspace_handle.clone()).await;
+    john_handle.set_booster(booster_handle.clone()).await;
+    booster_handle.set_brightspace(brightspace_handle.clone()).await;
     brightspace_handle.set_admin(admin_handle.clone()).await;
 
     // Step 3: Use Actors
@@ -23,7 +25,11 @@ async fn main() {
     john_handle.assign_grade_to_student("Aarya Patel".to_string(), 58.0).await;
     john_handle.register_new_student("Dane Hindsley".to_string()).await;
     john_handle.assign_grade_to_student("Dane Hindsley".to_string(), 53.0).await;
-    john_handle.report_all_students_and_grades_to_brightspace().await;
+    john_handle.report_all_students_and_grades_to_booster().await;
+
+    booster_handle.boost_grade("Aarya Patel".to_string(), 40.0).await;
+    booster_handle.boost_aura("Dane Hindsley".to_string()).await;
+    booster_handle.send_to_brightspace().await;
 
     brightspace_handle.generate_and_append_student_career_id().await;
     brightspace_handle.report_all_students_and_grades_to_admin().await;

@@ -14,7 +14,7 @@ struct John {
 
 	underlings: Vec<String>, 	// Vector (list) of VIP student names
 	underling_grades: Vec<f64>, // Vector (list) of VIP student grades
-	brightspace: Option<BrightspaceHandle>, // Brightspace Actor's handle
+	booster_handle: Option<BoosterHandle>, // Booster Actor's handle
 }
 
 /// This enum of messages cover all functionality that we might possibly want from our Actor.
@@ -23,8 +23,8 @@ struct John {
 enum JohnMessage {
 	AddUnderling { name: String },
 	SetUnderlingGrade { name: String, grade: f64 },
-	SetBrightspace { brightspace_handle: BrightspaceHandle },
-	SendAllToBrightspace { reply_to: oneshot::Sender<()>  }, // IMPORTANT: `reply_to` IS USED TO CONFIRM WHEN OPERATION IS DONE
+	SetBooster { booster_handle: BoosterHandle },
+	SendAllToBooster { reply_to: oneshot::Sender<()>  }, // IMPORTANT: `reply_to` IS USED TO CONFIRM WHEN OPERATION IS DONE
 }
 
 /// Define methods for our Actor John
@@ -33,7 +33,7 @@ impl John {
 	fn new(receiver: mpsc::Receiver<JohnMessage>) -> Self {
 		John {
 			receiver: receiver,
-			brightspace: None,
+			booster_handle: None,
 			underlings: Vec::new(),
 			underling_grades: Vec::new(),
 		}
@@ -64,26 +64,26 @@ impl John {
 				//             let ind = found_index.unwrap();
 			},
 			
-			JohnMessage::SetBrightspace { brightspace_handle } => {
-				println!("[ACTOR]: John initializing Brightspace field with BrightspaceHandle");
+			JohnMessage::SetBooster { booster_handle } => {
+				println!("[ACTOR]: John initializing BoosterHandle field with BoosterHandle");
 
-				self.brightspace = Some(brightspace_handle);
-							// Note: ^ since `self.brightspace` is an `Option<T>` that can take either `Some(T)` or `None`
+				self.booster_handle = Some(booster_handle);
+							// Note: ^ since `self.booster_handle` is an `Option<T>` that can take either `Some(T)` or `None`
 			},
 			
-			JohnMessage::SendAllToBrightspace { reply_to } => {
-				if let Some(bs) = &self.brightspace {
+			JohnMessage::SendAllToBooster { reply_to } => {
+				if let Some(bh) = &self.booster_handle {
 					// Note: ^ this is the "rusty" way of checking and unwrapping an `Option<T>`, it's equivalent to:
-					//        if self.brightspace.is_some() {
-					//             let bs = self.brightspace.unwrap();
+					//        if self.booster_handle.is_some() {
+					//             let bs = self.booster_handle.unwrap();
 
-					println!("[ACTOR]: John entering all students and grades to Brightspace");
+					println!("[ACTOR]: John entering all students and grades to BoosterHandle");
 
-					bs.enter_students_into_brightspace(self.underlings.clone()).await;
-					bs.enter_student_grades_into_brightspace(self.underling_grades.clone()).await;
+					bh.enter_student_names(self.underlings.clone()).await;
+					bh.enter_student_grades(self.underling_grades.clone()).await;
 				}
 				else {
-					eprintln!("[ACTOR]: John does not have Brightspace initialized so nothing happened");
+					eprintln!("[ACTOR]: John does not have BoosterHandle initialized so nothing happened");
 				}
 
 				// IMPORTANT: WE NEED A CALLBACK TO SEND AN EMPTY TUPLE `()` ACROSS CHANNEL TO TELL JOHNHANDLE "EVERYTHING IS DONE"
@@ -149,15 +149,15 @@ impl JohnHandle {
 		let _ = self.sender.send(msg).await;
 	}
 
-	pub async fn set_brightspace(&self, brightspace_handle: BrightspaceHandle) {
-		let msg: JohnMessage = JohnMessage::SetBrightspace { brightspace_handle: brightspace_handle };
+	pub async fn set_booster(&self, booster_handle: BoosterHandle) {
+		let msg: JohnMessage = JohnMessage::SetBooster { booster_handle };
 		let _ = self.sender.send(msg).await;
 	}
 
-	pub async fn report_all_students_and_grades_to_brightspace(&self) {
+	pub async fn report_all_students_and_grades_to_booster(&self) {
 		let (tx, rx) = oneshot::channel();
 
-		let msg: JohnMessage = JohnMessage::SendAllToBrightspace { reply_to: tx };
+		let msg: JohnMessage = JohnMessage::SendAllToBooster { reply_to: tx };
 		let _ = self.sender.send(msg).await;
 		
 		let _ = rx.await;
